@@ -337,7 +337,7 @@ namespace IonDotnet.Internals.Lite
             }
         }
 
-        protected void ThrowIfNull()
+        protected void  ThrowIfNull()
         {
             if (IsNullValue()) throw new NullValueException();
         }

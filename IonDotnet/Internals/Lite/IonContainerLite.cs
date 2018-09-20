@@ -144,7 +144,7 @@ namespace IonDotnet.Internals.Lite
             IsNullValue(true);
         }
 
-//        public bool IsEmpty { get; }
+        public bool IsEmpty => ChildCount == 0;
 
         public int GetChildCount() => ChildCount;
 

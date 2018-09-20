@@ -34,28 +34,28 @@ namespace IonDotnet.Internals.Lite
             throw new System.NotImplementedException();
         }
 
-        public override int IndexOf(IIonValue item)
+        public int IndexOf(IIonValue item)
         {
             throw new System.NotImplementedException();
         }
 
-        public override void Insert(int index, IIonValue item)
+        public void Insert(int index, IIonValue item)
         {
             throw new System.NotImplementedException();
         }
 
-        public override void RemoveAt(int index)
+        public void RemoveAt(int index)
         {
             throw new System.NotImplementedException();
         }
 
-        public override IIonValue this[int index]
+        public IIonValue this[int index]
         {
             get => throw new System.NotImplementedException();
             set => throw new System.NotImplementedException();
         }
 
-        public override IValueFactory Add()
+        public IValueFactory Add()
         {
             throw new System.NotImplementedException();
         }

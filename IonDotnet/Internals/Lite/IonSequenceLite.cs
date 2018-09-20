@@ -13,22 +13,22 @@ namespace IonDotnet.Internals.Lite
         {
         }
 
-        public int IndexOf(IIonValue item)
+        public virtual int IndexOf(IIonValue item)
         {
             throw new System.NotImplementedException();
         }
 
-        public void Insert(int index, IIonValue item)
+        public virtual void Insert(int index, IIonValue item)
         {
             throw new System.NotImplementedException();
         }
 
-        public void RemoveAt(int index)
+        public virtual void RemoveAt(int index)
         {
             throw new System.NotImplementedException();
         }
 
-        public IIonValue this[int index]
+        public virtual IIonValue this[int index]
         {
             get => throw new System.NotImplementedException();
             set => throw new System.NotImplementedException();
@@ -44,7 +44,7 @@ namespace IonDotnet.Internals.Lite
             throw new System.NotImplementedException();
         }
 
-        public IValueFactory Add()
+        public virtual IValueFactory Add()
         {
             throw new System.NotImplementedException();
         }

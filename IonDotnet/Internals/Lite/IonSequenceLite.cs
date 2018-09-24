@@ -1,10 +1,15 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 
 namespace IonDotnet.Internals.Lite
 {
     internal abstract class IonSequenceLite : IonContainerLite, IIonSequence
     {
+        private int _childCount;
+        private IonValueLite[] _children;
+        
         protected IonSequenceLite(ContainerlessContext containerlessContext, bool isNull) : base(containerlessContext, isNull)
         {
         }
@@ -13,15 +18,34 @@ namespace IonDotnet.Internals.Lite
         {
         }
 
-        public virtual int IndexOf(IIonValue item)
+        private IonValueLite Get_child(int index)
         {
-            throw new System.NotImplementedException();
+            if (index < 0 || index >= _childCount)
+            {
+                throw new ArgumentOutOfRangeException();
+            }
+
+            return _children[index];
+        }
+
+
+        public int IndexOf(IIonValue item)
+        {
+            throw new NotImplementedException();
         }
 
         public virtual void Insert(int index, IIonValue item)
         {
-            throw new System.NotImplementedException();
+            if (index < 0 || index > _childCount)
+            {
+                throw new ArgumentOutOfRangeException();
+            }
+
+            CheckLocked();
+            // need more
+            throw new NotImplementedException();
         }
+
 
         public virtual void RemoveAt(int index)
         {
@@ -36,20 +60,17 @@ namespace IonDotnet.Internals.Lite
 
         public IIonValue Get(int index)
         {
-            throw new System.NotImplementedException();
+            ValidateThisNotNull();
+            return Get_child(index);
         }
 
-        public bool Add(IIonValue child)
+        public new bool Add(IIonValue child)
         {
-            throw new System.NotImplementedException();
+            base.Add(child);
+            return true;
         }
 
         public virtual IValueFactory Add()
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public void Add(int index, IIonValue child)
         {
             throw new System.NotImplementedException();
         }
@@ -66,6 +87,30 @@ namespace IonDotnet.Internals.Lite
 
         public IIonValue Remove(int index)
         {
+            CheckLocked();
+
+            if (index < 0 || index >= _childCount)
+            {
+                throw new ArgumentOutOfRangeException();
+            }
+
+            IonValueLite v = _children[index];
+//            var newArray = new List<IonValueLite>();
+//            for (int i = 0; i < index; i++)
+//            {
+//                newArray.Add(_children[i]);
+//            }
+//
+//            for (int i = index+1; i < _childCount; i++)
+//            {
+//                newArray.Add(_children[i]);
+//            }
+//            IonValueLite[] before = _children[0:index];
+            
+
+            return v;
+            
+            
             throw new System.NotImplementedException();
         }
 
@@ -119,14 +164,32 @@ namespace IonDotnet.Internals.Lite
             throw new System.NotImplementedException();
         }
 
-        public List<IIonValue> SubList(int @from, int to)
+        public List<IIonValue> SubList(int from, int to)
         {
-            throw new System.NotImplementedException();
+            if (from < 0 || from > to || from >= _childCount || to < 0 || to >= _childCount)
+            {
+                throw new ArgumentOutOfRangeException();
+            }
+
+            var newArray = new List<IIonValue>();
+
+            for (int i = from; i < to; i++)
+            {
+                newArray.Add(_children[i]);
+            }
+
+            return newArray;
         }
 
         public IIonValue[] ToArray()
         {
-            throw new System.NotImplementedException();
+            IIonValue[] newArray = new IIonValue[_childCount];
+            for (int i = 0; i < _childCount; i++)
+            {
+                newArray[i] = _children[i];
+            }
+
+            return newArray;
         }
     }
 }

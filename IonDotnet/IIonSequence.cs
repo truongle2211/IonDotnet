@@ -43,7 +43,7 @@ namespace IonDotnet
         /// <exception cref="ContainedValueException"> if child is already part of the sequence</exception>
         /// <exception cref="ArgumentException"> if <param name="child"></param>is a <see cref="IIonDatagram"/></exception>
         /// <exception cref="ArgumentOutOfRangeException"> if the index is out of range</exception>
-        void Add(int index, IIonValue child);
+        new void Insert(int index, IIonValue child);
 
         /// <summary>
         ///  Provides a factory that when invoked constructs a new value and add it to this sequence

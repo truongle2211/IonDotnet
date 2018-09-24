@@ -53,7 +53,7 @@ namespace IonDotnet.Internals.Lite
             }
             set
             {
-                CheckForLock();
+                CheckLocked();
                 _decimalValue = value;
             }
         }
@@ -66,7 +66,7 @@ namespace IonDotnet.Internals.Lite
             } 
             set
             {
-                CheckForLock();
+                CheckLocked();
                 _decimalValue = Convert.ToDecimal(value);
             } 
         }

@@ -37,7 +37,7 @@ namespace IonDotnet.Internals.Lite
             visitor.Visit(this);
         }
 
-        public override int IndexOf(IIonValue item)
+        public int IndexOf(IIonValue item)
         {
             throw new System.NotImplementedException();
         }

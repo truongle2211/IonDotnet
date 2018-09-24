@@ -177,14 +177,6 @@ namespace IonDotnet.Internals.Lite
             }
         }
 
-        protected void CheckForLock()
-        {
-            if (ReadOnly)
-            {
-                throw new InvalidOperationException("Operation is not valid");
-            }
-        }
-
         protected bool IsNullValue(bool value)
         {
             if (value)

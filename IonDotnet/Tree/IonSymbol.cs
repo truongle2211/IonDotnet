@@ -10,9 +10,23 @@ namespace IonDotnet.Tree
         {
         }
 
-        public IonSymbol(SymbolToken symbolToken) : base(symbolToken.Text)
+        public IonSymbol(SymbolToken symbolToken) : base(symbolToken.Text, symbolToken == default)
         {
             _sid = symbolToken.Sid;
+        }
+
+        private IonSymbol(bool isNull) : base(null, isNull)
+        {
+        }
+
+        /// <summary>
+        /// Returns a new null.symbol value.
+        /// </summary>
+        public static IonSymbol NewNull() => new IonSymbol(true);
+
+        public override bool Equals(IonValue other)
+        {
+            throw new System.NotImplementedException();
         }
 
         internal override void WriteBodyTo(IPrivateWriter writer)

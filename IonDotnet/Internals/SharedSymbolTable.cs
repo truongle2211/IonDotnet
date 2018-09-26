@@ -71,8 +71,10 @@ namespace IonDotnet.Internals
         {
             get
             {
-                if (!IsSystem) return null;
-                if (Version != 1) throw new IonException($"Unrecognized version {Version}");
+                if (!IsSystem)
+                    return null;
+                if (Version != 1)
+                    throw new IonException($"Unrecognized version {Version}");
                 return SystemSymbols.Ion10;
             }
         }
@@ -89,26 +91,30 @@ namespace IonDotnet.Internals
         public SymbolToken Intern(string text)
         {
             var symtok = Find(text);
-            if (symtok == SymbolToken.None) throw new InvalidOperationException("Table is read-only");
+            if (symtok == default)
+                throw new InvalidOperationException("Table is read-only");
             return symtok;
         }
 
         public SymbolToken Find(string text)
         {
-            if (string.IsNullOrEmpty(text)) throw new ArgumentNullException(text);
+            if (string.IsNullOrEmpty(text))
+                throw new ArgumentNullException(text);
 
-            if (!_symbolsMap.TryGetValue(text, out var sid)) return SymbolToken.None;
+            if (!_symbolsMap.TryGetValue(text, out var sid))
+                return default;
 
             var internedText = _symbolNames[sid - 1];
             return new SymbolToken(internedText, sid);
         }
 
-        public int FindSymbol(string name)
+        public int FindSymbolId(string name)
             => _symbolsMap.TryGetValue(name, out var sid) ? sid : SymbolToken.UnknownSid;
 
         public string FindKnownSymbol(int sid)
         {
-            if (sid < 0) throw new ArgumentException($"Value must be >= 0", nameof(sid));
+            if (sid < 0)
+                return null;
             var offset = sid - 1;
             return sid != 0 && offset < _symbolNames.Length ? _symbolNames[offset] : null;
         }
@@ -128,16 +134,19 @@ namespace IonDotnet.Internals
         // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Global
         internal static ISymbolTable GetSystem(int version)
         {
-            if (version != 1) 
+            if (version != 1)
                 throw new ArgumentException("only Ion 1.0 system symbols are supported");
             return Ion10SystemSymtab;
         }
 
         internal static ISymbolTable NewSharedSymbolTable(string name, int version, ISymbolTable priorSymtab, IEnumerable<string> symbols)
         {
-            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException(nameof(name), "Must not be empty");
-            if (symbols == null) throw new ArgumentNullException(nameof(symbols), "Must not be null");
-            if (version < 1) throw new ArgumentException("Must be at least 1", nameof(version));
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentNullException(nameof(name), "Must not be empty");
+            if (symbols == null)
+                throw new ArgumentNullException(nameof(symbols), "Must not be null");
+            if (version < 1)
+                throw new ArgumentException("Must be at least 1", nameof(version));
 
             var (symbolList, symbolMap) = PrepSymbolListAndMap(priorSymtab, symbols);
             return new SharedSymbolTable(name, version, symbolList, symbolMap);
@@ -168,7 +177,8 @@ namespace IonDotnet.Internals
             foreach (var symbol in symbols)
             {
                 // TODO What about empty symbols?
-                if (symbolMap.ContainsKey(symbol)) continue;
+                if (symbolMap.ContainsKey(symbol))
+                    continue;
                 symbolMap[symbol] = sid;
                 symbolList.Add(symbol);
                 sid++;

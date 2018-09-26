@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Threading.Tasks;
 using IonDotnet.Utils;
 
 namespace IonDotnet.Internals.Binary
@@ -239,25 +238,25 @@ namespace IonDotnet.Internals.Binary
             _symbolsWriter?.Dispose();
         }
 
-        public override async Task FlushAsync()
-        {
-            if (!PrepareFlush())
-                return;
-
-            var sLength = _symbolsWriter.PrepareFlush();
-            var uLength = _userWriter.PrepareFlush();
-
-            if (_outputStream is MemoryStream memoryStream)
-            {
-                var tLength = sLength + uLength;
-                memoryStream.Capacity += tLength;
-            }
-
-            await _symbolsWriter.FlushAsync(_outputStream);
-            await _userWriter.FlushAsync(_outputStream);
-
-            AfterFlush();
-        }
+//        public override async Task FlushAsync()
+//        {
+//            if (!PrepareFlush())
+//                return;
+//
+//            var sLength = _symbolsWriter.PrepareFlush();
+//            var uLength = _userWriter.PrepareFlush();
+//
+//            if (_outputStream is MemoryStream memoryStream)
+//            {
+//                var tLength = sLength + uLength;
+//                memoryStream.Capacity += tLength;
+//            }
+//
+//            await _symbolsWriter.FlushAsync(_outputStream);
+//            await _userWriter.FlushAsync(_outputStream);
+//
+//            AfterFlush();
+//        }
 
         /// <summary>
         /// Implementation should be such that this can be called many times
@@ -338,19 +337,19 @@ namespace IonDotnet.Internals.Binary
             _symbolState = SymbolState.SystemSymbols;
         }
 
-        public override async Task FinishAsync()
-        {
-            if (_userWriter.GetDepth() != 0)
-                throw new IonException($"Cannot finish writing at depth {_userWriter.GetDepth()}");
-
-            //try to flush, writers' states are reset
-            await FlushAsync();
-
-            //finish() reset local symbols, and symbolState back to SystemSymbols
-            _locals.Clear();
-            _localsLocked = false;
-            _symbolState = SymbolState.SystemSymbols;
-        }
+//        public override async Task FinishAsync()
+//        {
+//            if (_userWriter.GetDepth() != 0)
+//                throw new IonException($"Cannot finish writing at depth {_userWriter.GetDepth()}");
+//
+//            //try to flush, writers' states are reset
+//            await FlushAsync();
+//
+//            //finish() reset local symbols, and symbolState back to SystemSymbols
+//            _locals.Clear();
+//            _localsLocked = false;
+//            _symbolState = SymbolState.SystemSymbols;
+//        }
 
         public override void SetFieldName(string name)
         {
@@ -454,19 +453,22 @@ namespace IonDotnet.Internals.Binary
 
         public override void SetTypeAnnotation(string annotation)
         {
-            if (annotation == default) throw new ArgumentNullException(nameof(annotation));
+            if (annotation == default)
+                throw new ArgumentNullException(nameof(annotation));
 
             _userWriter.ClearAnnotations();
             var token = Intern(annotation);
             _userWriter.AddTypeAnnotationSymbol(token);
         }
 
-        public override void SetTypeAnnotationSymbols(IEnumerable<SymbolToken> annotations)
+        public override void SetTypeAnnotations(IEnumerable<string> annotations)
         {
-            if (annotations == null) throw new ArgumentNullException(nameof(annotations));
+            if (annotations == null)
+                throw new ArgumentNullException(nameof(annotations));
+            _userWriter.ClearAnnotations();
             foreach (var annotation in annotations)
             {
-                var token = InternSymbol(annotation);
+                var token = Intern(annotation);
                 _userWriter.AddTypeAnnotationSymbol(token);
             }
         }

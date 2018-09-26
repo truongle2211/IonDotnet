@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics;
 using System.Numerics;
-using System.Threading.Tasks;
 using IonDotnet.Systems;
 using IonDotnet.Tree;
 
@@ -13,37 +12,86 @@ namespace IonDotnet.Internals
 
         public IonTreeWriter(IonContainer root) : base(IonWriterBuilderBase.InitialIvmHandlingOption.Suppress)
         {
+            Debug.Assert(root != null);
             _currentContainer = root;
         }
 
         public override void WriteNull()
         {
-            throw new NotImplementedException();
+            var v = new IonNull();
+            AppendValue(v);
         }
 
         public override void WriteNull(IonType type)
         {
-            throw new NotImplementedException();
+            IonValue v;
+
+            switch (type)
+            {
+                case IonType.Null:
+                    v = new IonNull();
+                    break;
+                case IonType.Bool:
+                    v = IonBool.NewNull();
+                    break;
+                case IonType.Int:
+                    v = IonInt.NewNull();
+                    break;
+                case IonType.Float:
+                    v = IonFloat.NewNull();
+                    break;
+                case IonType.Decimal:
+                    throw new NotImplementedException();
+                case IonType.Timestamp:
+                    v = IonTimestamp.NewNull();
+                    break;
+                case IonType.Symbol:
+                    v = IonSymbol.NewNull();
+                    break;
+                case IonType.String:
+                    v = new IonString(null);
+                    break;
+                case IonType.Clob:
+                    throw new NotImplementedException();
+                case IonType.Blob:
+                    throw new NotImplementedException();
+                case IonType.List:
+                    v = IonList.NewNull();
+                    break;
+                case IonType.Sexp:
+                    throw new NotImplementedException();
+                case IonType.Struct:
+                    v = IonStruct.NewNull();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
+            }
+
+            AppendValue(v);
         }
 
         public override void WriteBool(bool value)
         {
-            throw new NotImplementedException();
+            var v = new IonBool(value);
+            AppendValue(v);
         }
 
         public override void WriteInt(long value)
         {
-            throw new NotImplementedException();
+            var v = new IonInt(value);
+            AppendValue(v);
         }
 
         public override void WriteInt(BigInteger value)
         {
-            throw new NotImplementedException();
+            var v = new IonInt(value);
+            AppendValue(v);
         }
 
         public override void WriteFloat(double value)
         {
-            throw new NotImplementedException();
+            var v = new IonFloat(value);
+            AppendValue(v);
         }
 
         public override void WriteDecimal(decimal value)
@@ -58,7 +106,8 @@ namespace IonDotnet.Internals
 
         public override void WriteString(string value)
         {
-            throw new NotImplementedException();
+            var v = new IonString(value);
+            AppendValue(v);
         }
 
         public override void WriteBlob(ReadOnlySpan<byte> value)
@@ -76,47 +125,69 @@ namespace IonDotnet.Internals
             //nothing to do here
         }
 
-        public override Task FlushAsync()
-        {
-            throw new NotImplementedException();
-        }
 
         public override void Flush()
         {
-            throw new NotImplementedException();
+            //nothing to do here
         }
 
         public override void Finish()
         {
-            throw new NotImplementedException();
-        }
-
-        public override Task FinishAsync()
-        {
-            throw new NotImplementedException();
+            //nothing to do here
         }
 
         public override void StepIn(IonType type)
         {
-            throw new NotImplementedException();
+            IonContainer c;
+            switch (type)
+            {
+                case IonType.List:
+                    c = new IonList();
+                    break;
+                case IonType.Sexp:
+                    throw new NotImplementedException();
+                case IonType.Struct:
+                    c = new IonStruct();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
+            }
+
+            AppendValue(c);
+            _currentContainer = c;
         }
 
         public override void StepOut()
         {
-            throw new NotImplementedException();
+            if (_currentContainer.Container is null)
+                throw new InvalidOperationException("Cannot step out of top level value");
+            _currentContainer = _currentContainer.Container;
         }
 
         public override bool IsInStruct => _currentContainer.Type == IonType.Struct;
 
         public override int GetDepth()
         {
-            throw new NotImplementedException();
+            var count = 1;
+            var container = _currentContainer;
+            while (container.Container != null)
+            {
+                container = container.Container;
+                count++;
+            }
+
+            if (container is IonDatagram)
+            {
+                //top-level datagram doesn't count
+                count--;
+            }
+
+            return count;
         }
 
-        protected override void WriteSymbolString(SymbolToken value)
+        protected override void WriteSymbolAsIs(SymbolToken symbolToken)
         {
-            var symbol = new IonSymbol(value);
-            AppendValue(symbol);
+            AppendValue(new IonSymbol(symbolToken));
         }
 
         protected override void WriteIonVersionMarker(ISymbolTable systemSymtab)
@@ -134,7 +205,7 @@ namespace IonDotnet.Internals
                 value.ClearAnnotations();
                 foreach (var annotation in _annotations)
                 {
-                    value.AddTypeAnnotation(annotation);
+                    value.AddTypeAnnotation(annotation.Text);
                 }
 
                 _annotations.Clear();
@@ -146,7 +217,7 @@ namespace IonDotnet.Internals
                 if (field.Text is null)
                     throw new InvalidOperationException("Field name is missing");
 
-                var structContainer = (_currentContainer as IonStruct);
+                var structContainer = _currentContainer as IonStruct;
                 Debug.Assert(structContainer != null);
                 structContainer[field.Text] = value;
             }
@@ -154,6 +225,8 @@ namespace IonDotnet.Internals
             {
                 _currentContainer.Add(value);
             }
+
+            Debug.Assert(value.Container == _currentContainer);
         }
     }
 }

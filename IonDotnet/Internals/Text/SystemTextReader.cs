@@ -8,7 +8,7 @@ namespace IonDotnet.Internals.Text
 {
     internal class SystemTextReader : RawTextReader
     {
-        private readonly ISymbolTable _systemSymbols;
+        protected readonly ISymbolTable _systemSymbols;
 
         protected SystemTextReader(TextStream input, IonType parent) : base(input, parent)
         {
@@ -58,7 +58,7 @@ namespace IonDotnet.Internals.Text
 
             //TODO is there a better way
             var s = _valueBuffer.ToString();
-            _v.AddValue(s);
+            _v.AddString(s);
             ClearValueBuffer();
 
             switch (_scanner.Token)
@@ -116,7 +116,6 @@ namespace IonDotnet.Internals.Text
                             throw new IonException($"Unexpected type {_valueType}");
                         case IonType.Symbol:
                             _v.StringValue = s;
-                            _v.IntValue = GetSymbolTable().FindSymbol(s);
                             _v.AuthoritativeType = ScalarType.String;
                             break;
                         case IonType.Float:
@@ -406,6 +405,16 @@ namespace IonDotnet.Internals.Text
                 throw new InvalidOperationException($"Current value is of type {_valueType}");
 
             PrepareValue();
+            if (_v.TypeSet.HasFlag(ScalarType.Int) && !_v.TypeSet.HasFlag(ScalarType.String))
+            {
+                //lookup symbol string from sid
+                _v.AddString(GetSymbolTable().FindKnownSymbol(_v.IntValue));
+            }
+            else if (_v.StringValue != null && !_v.TypeSet.HasFlag(ScalarType.Int))
+            {
+                _v.AddInt(GetSymbolTable().FindSymbolId(_v.StringValue));
+            }
+
             return new SymbolToken(_v.StringValue, _v.IntValue);
         }
 

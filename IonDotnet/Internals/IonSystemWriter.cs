@@ -51,12 +51,12 @@ namespace IonDotnet.Internals
             _annotations.Add(symtok);
         }
 
-        public override void SetTypeAnnotationSymbols(IEnumerable<SymbolToken> annotations)
+        public override void SetTypeAnnotations(IEnumerable<string> annotations)
         {
             _annotations.Clear();
             foreach (var annotation in annotations)
             {
-                var a = Symbols.Localize(_symbolTable, annotation);
+                var a = Symbols.Localize(_symbolTable, new SymbolToken(annotation, SymbolToken.UnknownSid));
 
                 _annotations.Add(a);
             }
@@ -90,25 +90,27 @@ namespace IonDotnet.Internals
                 return;
             }
 
-            WriteSymbolString(new SymbolToken(symbol, SymbolToken.UnknownSid));
+            WriteSymbolAsIs(new SymbolToken(symbol, SymbolToken.UnknownSid));
         }
 
         public override void WriteSymbolToken(SymbolToken symbolToken)
         {
+            if (symbolToken == default)
+            {
+                WriteNull(IonType.Symbol);
+                return;
+            }
+
             if (SystemSymbols.Ion10 == symbolToken.Text && GetDepth() == 0 && _annotations.Count == 0)
             {
                 WriteIonVersionMarker();
                 return;
             }
 
-            //validate sid
-            if (symbolToken.Sid > SymbolTable.MaxId)
-                throw new UnknownSymbolException(symbolToken.Sid);
-
-            WriteSymbolString(symbolToken);
+            WriteSymbolAsIs(symbolToken);
         }
 
-        protected abstract void WriteSymbolString(SymbolToken value);
+        protected abstract void WriteSymbolAsIs(SymbolToken symbolToken);
 
         protected abstract void WriteIonVersionMarker(ISymbolTable systemSymtab);
 

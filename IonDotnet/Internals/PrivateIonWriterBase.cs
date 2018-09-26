@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
-using System.Threading.Tasks;
 
 namespace IonDotnet.Internals
 {
@@ -78,7 +77,7 @@ namespace IonDotnet.Internals
                     WriteTimestamp(reader.TimestampValue());
                     break;
                 case IonType.Symbol:
-                    WriteSymbol(reader.SymbolValue().Text);
+                    WriteSymbolToken(reader.SymbolValue());
                     break;
                 case IonType.String:
                     WriteString(reader.StringValue());
@@ -101,7 +100,7 @@ namespace IonDotnet.Internals
 
             StepIn(type);
             reader.StepIn();
-            while ((type = reader.MoveNext()) != IonType.Null)
+            while ((type = reader.MoveNext()) != IonType.None)
             {
                 WriteValueRecursively(type, reader);
             }
@@ -149,16 +148,14 @@ namespace IonDotnet.Internals
         public abstract ISymbolTable SymbolTable { get; }
         public abstract void Flush();
         public abstract void Finish();
-        public abstract Task FinishAsync();
         public abstract void SetFieldName(string name);
         public abstract void SetFieldNameSymbol(SymbolToken symbol);
         public abstract void StepIn(IonType type);
         public abstract void StepOut();
         public abstract bool IsInStruct { get; }
-        public abstract void SetTypeAnnotationSymbols(IEnumerable<SymbolToken> annotations);
+        public abstract void SetTypeAnnotations(IEnumerable<string> annotations);
         public abstract bool IsFieldNameSet();
         public abstract int GetDepth();
         public abstract void WriteIonVersionMarker();
-        public abstract Task FlushAsync();
     }
 }

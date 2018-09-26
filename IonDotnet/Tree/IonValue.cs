@@ -5,9 +5,15 @@ using System.Runtime.CompilerServices;
 using IonDotnet.Internals;
 using IonDotnet.Internals.Text;
 using IonDotnet.Systems;
+using IonDotnet.Utils;
 
 namespace IonDotnet.Tree
 {
+    /// <inheritdoc />
+    /// <summary>
+    /// Represents a tree view into Ion data. Each <see cref="T:IonDotnet.Tree.IonValue" /> is a node in the tree. These values are
+    /// mutable and strictly hierarchical. 
+    /// </summary>
     public abstract class IonValue : IEquatable<IonValue>
     {
         #region Flags
@@ -155,7 +161,7 @@ namespace IonDotnet.Tree
         protected void ThrowIfLocked()
         {
             if (LockedFlagOn())
-                throw new InvalidOperationException("Value is locked");
+                throw new InvalidOperationException("Value is read-only");
         }
 
         protected void ThrowIfNull()
@@ -171,17 +177,12 @@ namespace IonDotnet.Tree
         /// </summary>
         private byte _flags;
 
-        /// <summary>
-        /// Index to the the local symbol table in the datagram. Can point to up to 2^15 symtabs. 
-        /// </summary>
-        internal short _tableIndex = -1;
-
         #endregion
 
-        protected List<SymbolToken> _annotations;
+        protected List<string> _annotations;
 
         /// <summary>
-        /// Store the field name text and sid;
+        /// Store the field name text and sid.
         /// </summary>
         internal string FieldName;
 
@@ -194,62 +195,32 @@ namespace IonDotnet.Tree
         }
 
         /// <summary>
-        /// Get the 'top level' ancestor of this value in the value tree.
-        /// The top level value is either parent-less or its parent is a <see cref="IonDatagram"/>.
+        /// The container of this value, or null if this is not part of one.
         /// </summary>
-        /// <returns>Top-level Ion value in the value tree.</returns>
-        /// <remarks>This value is null for a <see cref="IonDatagram"/>.</remarks>
-        protected IonValue GetTopLevelValue()
-        {
-            var val = this;
-            while (!(val.Container is null) && !(val.Container is IonDatagram))
-            {
-                val = val.Container;
-            }
-
-            return val;
-        }
-
-        /// <summary>
-        /// Any <see cref="IonValue"/> has a current symbol table which is the table used to decode this value. 
-        /// </summary>
-        /// <returns>The current symbol table of this value.</returns>
-        public virtual ISymbolTable GetSymbolTable()
-        {
-            var topLevel = GetTopLevelValue();
-            if (!(topLevel.Container is IonDatagram datagram))
-                return null;
-
-            return datagram.GetSymbolTableForChild(topLevel);
-        }
-
-        /// <summary>
-        /// Gets the container of this value, or null if this is not part of one.
-        /// </summary>
-        public virtual IonValue Container { get; internal set; }
+        public virtual IonContainer Container { get; internal set; }
 
         /// <summary>
         /// Get this value's user type annotations.
         /// </summary>
         /// <returns>Read-only collection of type annotations.</returns>
-        public IReadOnlyCollection<SymbolToken> GetTypeAnnotations()
+        public IReadOnlyCollection<string> GetTypeAnnotations()
         {
             if (_annotations == null)
-                return SymbolToken.EmptyArray;
+                return PrivateHelper.EmptyStringArray;
 
             return _annotations;
         }
 
-        public void AddTypeAnnotation(SymbolToken symbolToken)
+        public void AddTypeAnnotation(string annotation)
         {
             ThrowIfLocked();
 
             if (_annotations == null)
             {
-                _annotations = new List<SymbolToken>(1);
+                _annotations = new List<string>(1);
             }
 
-            _annotations.Add(symbolToken);
+            _annotations.Add(annotation);
         }
 
         public void ClearAnnotations()
@@ -258,41 +229,36 @@ namespace IonDotnet.Tree
             _annotations.Clear();
         }
 
-
+        /// <summary>
+        /// Returns true if the value contains such annotation.
+        /// </summary>
+        /// <param name="text">Annotation text.</param>
+        /// <exception cref="ArgumentNullException">When text is null.</exception>
         public bool HasAnnotation(string text)
         {
             if (text == null)
                 throw new ArgumentNullException(nameof(text));
 
-            if (_annotations == null)
-                return false;
-
-            for (var i = 0; i < _annotations.Count; i++)
-            {
-                if (_annotations[i].Text == text)
-                    return true;
-            }
-
-            return false;
+            return _annotations != null && _annotations.Contains(text);
         }
 
         /// <summary>
         /// Get or set whether this value is a null value.
         /// </summary>
-        public virtual bool IsNull
+        public virtual bool IsNull => NullFlagOn();
+
+        public virtual void MakeNull()
         {
-            get => NullFlagOn();
-            set
-            {
-                ThrowIfLocked();
-                NullFlagOn(value);
-            }
+            ThrowIfLocked();
+            NullFlagOn(true);
         }
 
-        public bool Equals(IonValue other)
-        {
-            throw new NotImplementedException();
-        }
+        /// <inheritdoc />
+        /// <summary>
+        /// Returns true if this value is equal to the other.
+        /// </summary>
+        /// <param name="other">The other value.</param>
+        public abstract bool Equals(IonValue other);
 
         public void WriteTo(IIonWriter writer)
         {
@@ -307,10 +273,11 @@ namespace IonDotnet.Tree
                 writer.SetFieldName(FieldName);
             }
 
-            privateWriter.SetTypeAnnotationSymbols(GetTypeAnnotations());
+            var annotations = GetTypeAnnotations();
+            privateWriter.SetTypeAnnotations(annotations);
+//            privateWriter.SetTypeAnnotation(GetTypeAnnotations());
             WriteBodyTo(privateWriter);
         }
-
 
         /// <summary>
         /// Concrete class implementations should call the correct writer method.
@@ -330,7 +297,7 @@ namespace IonDotnet.Tree
 
         public void MakeReadOnly() => LockedFlagOn(true);
 
-        /// <value>The <see cref="IonType"/> of this value.</value>
+        /// <summary>The <see cref="IonType"/> of this value.</summary>
         public abstract IonType Type { get; }
 
         public string ToPrettyString()

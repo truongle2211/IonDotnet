@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -232,7 +231,7 @@ namespace IonDotnet.Internals.Binary
         }
 
         //these won't be called at this level
-        Task IIonWriter.FlushAsync() => TaskEx.CompletedTask;
+//        Task IIonWriter.FlushAsync() => TaskEx.CompletedTask;
 
         void IIonWriter.Flush()
         {
@@ -329,15 +328,11 @@ namespace IonDotnet.Internals.Binary
 
         public bool IsInStruct => _containerStack.Count > 0 && _containerStack.Peek().Type == ContainerType.Struct;
 
-        public void WriteValue(IIonReader reader)
-        {
-            throw new NotImplementedException();
-        }
+        void IIonWriter.WriteValue(IIonReader reader) => throw new NotSupportedException();
 
-        public void WriteValues(IIonReader reader)
-        {
-            throw new NotImplementedException();
-        }
+        void IIonWriter.WriteValues(IIonReader reader) => throw new NotSupportedException();
+
+        void IIonWriter.SetTypeAnnotations(IEnumerable<string> annotations) => throw new NotSupportedException();
 
         public void WriteNull()
         {
@@ -798,16 +793,6 @@ namespace IonDotnet.Internals.Binary
 
         public void SetTypeAnnotation(string annotation)
             => throw new NotSupportedException("raw writer does not support setting annotations as text");
-
-        public void SetTypeAnnotationSymbols(IEnumerable<SymbolToken> annotations)
-        {
-            _annotations.Clear();
-
-            foreach (var annotation in annotations)
-            {
-                _annotations.Add(annotation);
-            }
-        }
 
         internal void AddTypeAnnotationSymbol(SymbolToken annotation) => _annotations.Add(annotation);
 

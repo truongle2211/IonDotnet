@@ -1,5 +1,6 @@
 namespace IonDotnet.Tree
 {
+    /// <inheritdoc />
     /// <summary>
     /// Represent Ion textual values.
     /// </summary>
@@ -7,8 +8,9 @@ namespace IonDotnet.Tree
     {
         protected string _stringVal;
 
-        protected IonText(string text) : base(text is null)
+        protected IonText(string text, bool isNull) : base(isNull)
         {
+            _stringVal = text;
         }
 
         /// <summary>
@@ -20,9 +22,15 @@ namespace IonDotnet.Tree
             set
             {
                 ThrowIfLocked();
-                NullFlagOn(false);
+                NullFlagOn(value is null);
                 _stringVal = value;
             }
+        }
+
+        public override void MakeNull()
+        {
+            base.MakeNull();
+            _stringVal = null;
         }
     }
 }

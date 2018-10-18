@@ -151,20 +151,21 @@ namespace IonDotnet.Internals.Text
         protected int _valueKeyword;
 
         protected IonType _valueType;
+        private bool _tokenContentLoaded;
         private bool _containerIsStruct; // helper bool's set on push and pop and used
         private bool _containerProhibitsCommas; // frequently during state transitions actions
         protected bool _hasNextCalled;
-        private string _fieldName;
-        private int _fieldNameSid = SymbolToken.UnknownSid;
+        protected string _fieldName;
+        protected int _fieldNameSid = SymbolToken.UnknownSid;
 
         private readonly ContainerStack _containerStack;
         protected int _lobToken;
         protected int _lobValuePosition;
         protected byte[] _lobBuffer;
 
-        protected RawTextReader(TextStream input, IonType parent = IonType.Datagram)
+        protected RawTextReader(TextStream input)
         {
-            _state = GetStateAtContainerStart(parent);
+            _state = GetStateAtContainerStart(IonType.Datagram);
             _valueBuffer = new StringBuilder();
             _scanner = new TextScanner(input);
             _eof = false;
@@ -176,6 +177,7 @@ namespace IonDotnet.Internals.Text
 
         protected void ClearValueBuffer()
         {
+            _tokenContentLoaded = false;
             _valueBuffer.Clear();
         }
 
@@ -234,7 +236,7 @@ namespace IonDotnet.Internals.Text
 
                         LoadTokenContents(token);
                         var symtok = ParseSymbolToken(_valueBuffer, token);
-                        if (symtok.Sid >= 0 && GetSymbolTable().FindKnownSymbol(symtok.Sid) == null)
+                        if (symtok.Sid > 0 && GetSymbolTable().FindKnownSymbol(symtok.Sid) == null)
                         {
                             throw new UnknownSymbolException(symtok.Sid);
                         }
@@ -513,7 +515,7 @@ namespace IonDotnet.Internals.Text
 
         protected void LoadTokenContents(int scannerToken)
         {
-            if (_valueBuffer.Length > 0)
+            if (_tokenContentLoaded)
                 return;
 
             int c;
@@ -564,6 +566,8 @@ namespace IonDotnet.Internals.Text
                     _valueType = IonType.String;
                     break;
             }
+
+            _tokenContentLoaded = true;
         }
 
         public void StepIn()
@@ -648,23 +652,9 @@ namespace IonDotnet.Internals.Text
 
         public abstract IntegerSize GetIntegerSize();
 
-        public string CurrentFieldName
-        {
-            get
-            {
-                if (CurrentDepth == 0 && IsInStruct)
-                    return null;
-                if (_fieldName == null && _fieldNameSid > 0)
-                    throw new UnknownSymbolException(_fieldNameSid);
-                return _fieldName;
-            }
-        }
+        public abstract string CurrentFieldName { get; }
 
-        public SymbolToken GetFieldNameSymbol()
-        {
-            //TODO in_struct_internal?
-            return new SymbolToken(_fieldName, _fieldNameSid);
-        }
+        public abstract SymbolToken GetFieldNameSymbol();
 
         public abstract bool CurrentIsNull { get; }
         public bool IsInStruct => _containerStack.Count > 0 && _containerStack.Peek() == IonType.Struct;
@@ -679,7 +669,7 @@ namespace IonDotnet.Internals.Text
 
         public abstract double DoubleValue();
 
-        public abstract decimal DecimalValue();
+        public abstract BigDecimal DecimalValue();
 
         public abstract Timestamp TimestampValue();
 

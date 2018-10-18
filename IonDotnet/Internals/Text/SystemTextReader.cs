@@ -10,7 +10,7 @@ namespace IonDotnet.Internals.Text
     {
         protected readonly ISymbolTable _systemSymbols;
 
-        protected SystemTextReader(TextStream input, IonType parent) : base(input, parent)
+        protected SystemTextReader(TextStream input) : base(input)
         {
             _systemSymbols = SharedSymbolTable.GetSystem(1);
         }
@@ -33,27 +33,25 @@ namespace IonDotnet.Internals.Text
                 return;
 
             LoadTokenContents(_scanner.Token);
-
+            var negative = false;
             if (_scanner.Token == TextConstants.TokenHex)
             {
-                var negative = _valueBuffer[0] == '-';
-                var pos = negative ? 1 : 0;
-                Debug.Assert(_valueBuffer[pos] == '0');
-                Debug.Assert(char.ToLower(_valueBuffer[pos + 1]) == 'x');
+                negative = _valueBuffer[0] == '-';
+                Debug.Assert(_valueBuffer[negative ? 1 : 0] == '0');
+                Debug.Assert(char.ToLower(_valueBuffer[negative ? 2 : 1]) == 'x');
 
                 //delete '0x'
                 //TODO is there a better way?
-                _valueBuffer.Remove(pos, 2);
+                _valueBuffer.Remove(0, negative ? 3 : 2);
             }
             else if (_scanner.Token == TextConstants.TokenBinary)
             {
-                var negative = _valueBuffer[0] == '-';
-                var pos = negative ? 1 : 0;
-                Debug.Assert(_valueBuffer[1] == '0');
-                Debug.Assert(char.ToLower(_valueBuffer[2]) == 'b');
+                negative = _valueBuffer[0] == '-';
+                Debug.Assert(_valueBuffer[negative ? 1 : 0] == '0');
+                Debug.Assert(char.ToLower(_valueBuffer[negative ? 2 : 1]) == 'b');
                 //delete '0b'
                 //TODO is there a better way?
-                _valueBuffer.Remove(pos, 2);
+                _valueBuffer.Remove(0, negative ? 3 : 2);
             }
 
             //TODO is there a better way
@@ -71,7 +69,7 @@ namespace IonDotnet.Internals.Text
                         default:
                             throw new IonException($"Expected value type to be numeric, but is {_valueType}");
                         case IonType.Int:
-                            SetInteger(Radix.Decimal, s);
+                            SetInteger(Radix.Decimal, s, negative);
                             break;
                         case IonType.Decimal:
                             SetDecimalOrDouble(s);
@@ -86,13 +84,13 @@ namespace IonDotnet.Internals.Text
 
                     break;
                 case TextConstants.TokenInt:
-                    SetInteger(Radix.Decimal, s);
+                    SetInteger(Radix.Decimal, s, negative);
                     break;
                 case TextConstants.TokenBinary:
-                    SetInteger(Radix.Binary, s);
+                    SetInteger(Radix.Binary, s, negative);
                     break;
                 case TextConstants.TokenHex:
-                    SetInteger(Radix.Hex, s);
+                    SetInteger(Radix.Hex, s, negative);
                     break;
                 case TextConstants.TokenDecimal:
                     SetDecimal(s);
@@ -185,95 +183,88 @@ namespace IonDotnet.Internals.Text
             }
             else
             {
-                _v.DecimalValue = decimal.Parse(text, CultureInfo.InvariantCulture);
+                _v.DecimalValue = BigDecimal.Parse(text);
                 _valueType = IonType.Decimal;
             }
         }
 
         private void SetFloat(string text)
         {
-            _v.DoubleValue = double.Parse(text, CultureInfo.InvariantCulture);
+            try
+            {
+                _v.DoubleValue = double.Parse(text, CultureInfo.InvariantCulture);
+            }
+            catch (OverflowException)
+            {
+                _v.DoubleValue = text[0] == '-' ? double.NegativeInfinity : double.PositiveInfinity;
+            }
         }
 
         /// <summary>
-        /// There is 'd' (decimal token) in the text. This method sets the decimal value or throw overflow exception if the number of decimal
-        /// places is too high.
+        /// There is 'd' (decimal token) in the text. This method sets the decimal value.
         /// </summary>
         /// <param name="text">Number text</param>
         private void SetDecimal(string text)
         {
-            var dIdx = text.IndexOf("d", StringComparison.OrdinalIgnoreCase);
-            var dotIdx = text.IndexOf('.');
-            var span = text.AsSpan();
-            var coeffText = span.Slice(0, dIdx);
-
-            var expo = 0;
-            if (dIdx < text.Length - 1)
-            {
-#if NETCOREAPP2_1
-                expo = int.Parse(span.Slice(dIdx + 1));
-#else
-                expo = int.Parse(span.Slice(dIdx + 1).ToString());
-#endif
-            }
-
-            var decimalPlaces = dotIdx < 0 ? 0 : coeffText.Length - dotIdx;
-            decimalPlaces -= expo;
-            if (decimalPlaces > 28)
-                throw new OverflowException($"{text} has {decimalPlaces} decimal places, decimal cannot hold");
-
-#if NETCOREAPP2_1
-            var coeff = decimal.Parse(coeffText);
-#else
-            var coeff = decimal.Parse(coeffText.ToString());
-#endif
-            var neg = expo < 0;
-            if (neg)
-            {
-                expo = -expo;
-            }
-
-            for (var i = 0; i < expo; i++)
-            {
-                coeff = neg ? coeff / 10 : coeff * 10;
-            }
-
-            _v.DecimalValue = coeff;
+            _v.DecimalValue = BigDecimal.Parse(text);
         }
 
-        private void SetInteger(Radix radix, string s)
+        private void SetInteger(Radix radix, string s, bool negative)
         {
             var intBase = radix == Radix.Binary ? 2 : (radix == Radix.Decimal ? 10 : 16);
+
             if (radix.IsInt(s.AsSpan()))
             {
-                _v.IntValue = Convert.ToInt32(s, intBase);
+                _v.IntValue = negative ? -Convert.ToInt32(s, intBase) : Convert.ToInt32(s, intBase);
                 return;
             }
 
             if (radix.IsLong(s.AsSpan()))
             {
-                _v.LongValue = Convert.ToInt64(s, intBase);
+                _v.LongValue = negative ? -Convert.ToInt64(s, intBase) : Convert.ToInt64(s, intBase);
                 return;
             }
 
             //bigint
             if (intBase == 10)
             {
-                _v.BigIntegerValue = BigInteger.Parse(s, CultureInfo.InvariantCulture);
+                _v.BigIntegerValue = negative
+                    ? -BigInteger.Parse(s, CultureInfo.InvariantCulture)
+                    : BigInteger.Parse(s, CultureInfo.InvariantCulture);
                 return;
             }
 
             if (intBase == 16)
             {
-                _v.BigIntegerValue = BigInteger.Parse(s, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                _v.BigIntegerValue = negative
+                    ? -BigInteger.Parse(s, NumberStyles.HexNumber, CultureInfo.InvariantCulture)
+                    : BigInteger.Parse(s, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
                 return;
             }
 
             //does anyone really do this?
-            SetBigIntegerFromBinaryString(s);
+            SetBigIntegerFromBinaryString(s, negative);
         }
 
-        private void SetBigIntegerFromBinaryString(string s)
+        public override string CurrentFieldName
+        {
+            get
+            {
+                //TODO embedded document?
+                var text = _fieldName;
+                if (text == null && _fieldNameSid != SymbolToken.UnknownSid)
+                {
+                    if (_fieldNameSid != 0 && (text = GetSymbolTable().FindKnownSymbol(_fieldNameSid)) == null)
+                        throw new UnknownSymbolException(_fieldNameSid);
+                }
+
+                return text;
+            }
+        }
+
+        public override SymbolToken GetFieldNameSymbol() => new SymbolToken(CurrentFieldName, _fieldNameSid);
+
+        private void SetBigIntegerFromBinaryString(string s, bool negative)
         {
             var b = BigInteger.Zero;
             var start = 0;
@@ -291,7 +282,7 @@ namespace IonDotnet.Internals.Text
                 b += 1;
             }
 
-            _v.BigIntegerValue = b;
+            _v.BigIntegerValue = negative ? -b : b;
         }
 
         private void LoadLobContent()
@@ -372,7 +363,7 @@ namespace IonDotnet.Internals.Text
             return _v.DoubleValue;
         }
 
-        public override decimal DecimalValue()
+        public override BigDecimal DecimalValue()
         {
             if (CurrentIsNull)
                 throw new NullValueException();

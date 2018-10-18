@@ -9,7 +9,7 @@ namespace IonDotnet.Systems
     public class IonLoader
     {
         /// <summary>
-        /// Get the default loader.
+        /// The default Ion loader without any catalog.
         /// </summary>
         public static readonly IonLoader Default = new IonLoader();
 
@@ -58,27 +58,11 @@ namespace IonDotnet.Systems
         /// <returns>An <see cref="IonDatagram"/> tree view.</returns>
         public IonDatagram Load(FileInfo ionFile)
         {
-            Exception exception;
             using (var stream = ionFile.OpenRead())
             {
-                try
-                {
-                    var datagram = Load(stream);
-                    return datagram;
-                }
-                catch (IOException ioException)
-                {
-                    exception = ioException;
-                }
-                catch (IonException ionException)
-                {
-                    exception = ionException;
-                }
+                var datagram = Load(stream);
+                return datagram;
             }
-
-            throw exception is IonException ionEx
-                ? ionEx
-                : new IonException(exception);
         }
 
         private static IonDatagram WriteDatagram(IIonReader reader)

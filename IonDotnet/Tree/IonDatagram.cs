@@ -4,6 +4,7 @@ using System.Diagnostics;
 
 namespace IonDotnet.Tree
 {
+    /// <inheritdoc />
     /// <summary>
     /// An ion datagram is a special kind of value which represents a stream of Ion values.
     /// </summary>
@@ -17,7 +18,7 @@ namespace IonDotnet.Tree
         /// <summary>
         /// Use strict reference equality for datagram.
         /// </summary>
-        public override bool Equals(IonValue other) => other == this;
+        public override bool IsEquivalentTo(IonValue other) => other == this;
 
         public override IonType Type => IonType.Datagram;
 

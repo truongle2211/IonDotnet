@@ -47,16 +47,16 @@ namespace IonDotnet.Tests.Integration
             void assertReader(IIonReader reader)
             {
                 Assert.AreEqual(IonType.Decimal, reader.MoveNext());
-                Assert.AreEqual(18446744073709551615m, reader.DecimalValue());
+                Assert.AreEqual(18446744073709551615m, reader.DecimalValue().ToDecimal());
 
                 Assert.AreEqual(IonType.Decimal, reader.MoveNext());
-                Assert.AreEqual(-18446744073709551615.0m, reader.DecimalValue());
+                Assert.AreEqual(-18446744073709551615.0m, reader.DecimalValue().ToDecimal());
 
                 Assert.AreEqual(IonType.Decimal, reader.MoveNext());
-                Assert.AreEqual(18446744073709551616.0m, reader.DecimalValue());
+                Assert.AreEqual(18446744073709551616.0m, reader.DecimalValue().ToDecimal());
 
                 Assert.AreEqual(IonType.Decimal, reader.MoveNext());
-                Assert.AreEqual(-18446744073709551616.0m, reader.DecimalValue());
+                Assert.AreEqual(-18446744073709551616.0m, reader.DecimalValue().ToDecimal());
             }
 
             void writerFunc(IIonWriter writer)
@@ -85,7 +85,7 @@ namespace IonDotnet.Tests.Integration
             void assertReader(IIonReader reader)
             {
                 Assert.AreEqual(IonType.Decimal, reader.MoveNext());
-                Assert.AreEqual(-1.28m, reader.DecimalValue());
+                Assert.AreEqual(-1.28m, reader.DecimalValue().ToDecimal());
             }
 
             void writerFunc(IIonWriter writer)
@@ -111,7 +111,7 @@ namespace IonDotnet.Tests.Integration
             void assertReader(IIonReader reader)
             {
                 Assert.AreEqual(IonType.Decimal, reader.MoveNext());
-                Assert.AreEqual(1.23m, reader.DecimalValue());
+                Assert.AreEqual(1.23m, reader.DecimalValue().ToDecimal());
             }
 
             void writerFunc(IIonWriter writer)
@@ -153,7 +153,7 @@ namespace IonDotnet.Tests.Integration
                 foreach (var num in nums)
                 {
                     Assert.AreEqual(IonType.Decimal, reader.MoveNext());
-                    Assert.AreEqual(num, reader.DecimalValue());
+                    Assert.AreEqual(num, reader.DecimalValue().ToDecimal());
                 }
             }
 
@@ -327,6 +327,31 @@ namespace IonDotnet.Tests.Integration
         [DataRow("good/intBigSize256.10n")]
         [DataRow("good/intBigSize256.ion")]
         public void IntBigSize256(string fileName)
+        {
+            var file = DirStructure.IonTestFile(fileName);
+            var r = ReaderFromFile(file, InputStyle.FileStream);
+            BigInteger b;
+
+            void assertReader(IIonReader reader)
+            {
+                Assert.AreEqual(IonType.Int, reader.MoveNext());
+                Assert.AreEqual(IntegerSize.BigInteger, reader.GetIntegerSize());
+                b = reader.BigIntegerValue();
+            }
+
+            void writerFunc(IIonWriter writer)
+            {
+                writer.WriteInt(b);
+                writer.Finish();
+            }
+
+            assertReader(r);
+            AssertReaderWriter(assertReader, writerFunc);
+        }
+
+        [DataRow("good/intBigSize512.ion")]
+        [TestMethod]
+        public void IntBigSize512(string fileName)
         {
             var file = DirStructure.IonTestFile(fileName);
             var r = ReaderFromFile(file, InputStyle.FileStream);

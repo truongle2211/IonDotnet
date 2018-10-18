@@ -53,15 +53,19 @@ namespace IonDotnet.Tests.Tree
         public void BooleanEquality(bool value)
         {
             var nullBool = IonBool.NewNull();
+            var null2 = IonBool.NewNull();
             var v = new IonBool(value);
             var v2 = new IonBool(value);
             var ionInt = new IonInt(3);
+            var vd = new IonBool(!value);
 
-            Assert.IsFalse(v.Equals(nullBool));
-            Assert.IsFalse(nullBool.Equals(v));
-            Assert.IsTrue(nullBool.Equals(IonBool.NewNull()));
-            Assert.IsTrue(v.Equals(v2));
-            Assert.IsFalse(v.Equals(ionInt));
+            Assert.IsFalse(v.IsEquivalentTo(nullBool));
+            Assert.IsFalse(v.IsEquivalentTo(vd));
+            Assert.IsFalse(nullBool.IsEquivalentTo(v));
+            Assert.IsTrue(nullBool.IsEquivalentTo(IonBool.NewNull()));
+            Assert.IsTrue(v.IsEquivalentTo(v2));
+            Assert.IsFalse(v.IsEquivalentTo(ionInt));
+            Assert.IsTrue(nullBool.IsEquivalentTo(null2));
         }
     }
 }

@@ -24,9 +24,15 @@ namespace IonDotnet.Tree
         /// </summary>
         public static IonSymbol NewNull() => new IonSymbol(true);
 
-        public override bool Equals(IonValue other)
+        public override bool IsEquivalentTo(IonValue other)
         {
-            throw new System.NotImplementedException();
+            if (!(other is IonSymbol oSymbol))
+                return false;
+
+            if (NullFlagOn())
+                return oSymbol.IsNull;
+
+            return !oSymbol.IsNull && oSymbol.StringVal == StringValue;
         }
 
         internal override void WriteBodyTo(IPrivateWriter writer)
@@ -54,7 +60,7 @@ namespace IonDotnet.Tree
 
         public SymbolToken SymbolValue
         {
-            get => new SymbolToken(_stringVal, _sid);
+            get => new SymbolToken(StringVal, _sid);
             set
             {
                 StringValue = value.Text;

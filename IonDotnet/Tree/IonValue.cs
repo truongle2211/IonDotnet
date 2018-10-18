@@ -9,12 +9,11 @@ using IonDotnet.Utils;
 
 namespace IonDotnet.Tree
 {
-    /// <inheritdoc />
     /// <summary>
-    /// Represents a tree view into Ion data. Each <see cref="T:IonDotnet.Tree.IonValue" /> is a node in the tree. These values are
+    /// Represents a tree view into Ion data. Each <see cref="IonValue" /> is a node in the tree. These values are
     /// mutable and strictly hierarchical. 
     /// </summary>
-    public abstract class IonValue : IEquatable<IonValue>
+    public abstract class IonValue
     {
         #region Flags
 
@@ -179,12 +178,12 @@ namespace IonDotnet.Tree
 
         #endregion
 
-        protected List<string> _annotations;
+        private List<string> _annotations;
 
         /// <summary>
         /// Store the field name text and sid.
         /// </summary>
-        internal string FieldName;
+        public SymbolToken FieldNameSymbol { get; internal set; }
 
         protected IonValue(bool isNull)
         {
@@ -211,6 +210,10 @@ namespace IonDotnet.Tree
             return _annotations;
         }
 
+        /// <summary>
+        /// Add an annotation to this value.
+        /// </summary>
+        /// <param name="annotation">Annotation text.</param>
         public void AddTypeAnnotation(string annotation)
         {
             ThrowIfLocked();
@@ -223,6 +226,9 @@ namespace IonDotnet.Tree
             _annotations.Add(annotation);
         }
 
+        /// <summary>
+        /// Clear all annotations of this value.
+        /// </summary>
         public void ClearAnnotations()
         {
             ThrowIfLocked();
@@ -245,20 +251,26 @@ namespace IonDotnet.Tree
         /// <summary>
         /// Get or set whether this value is a null value.
         /// </summary>
-        public virtual bool IsNull => NullFlagOn();
+        public bool IsNull => NullFlagOn();
 
+        /// <summary>
+        /// Make this value become a null.
+        /// </summary>
         public virtual void MakeNull()
         {
             ThrowIfLocked();
             NullFlagOn(true);
         }
 
-        /// <inheritdoc />
         /// <summary>
-        /// Returns true if this value is equal to the other.
+        /// Returns true if this value is equivalent to the other, false otherwise.
         /// </summary>
         /// <param name="other">The other value.</param>
-        public abstract bool Equals(IonValue other);
+        /// <remarks>
+        /// Equivalency is determined by whether the <see cref="IonValue"/> objects hold equal values, or 
+        /// in the case of container, they contain equivalent sets of children.
+        /// </remarks>
+        public abstract bool IsEquivalentTo(IonValue other);
 
         public void WriteTo(IIonWriter writer)
         {
@@ -267,10 +279,10 @@ namespace IonDotnet.Tree
 
             if (writer.IsInStruct && !privateWriter.IsFieldNameSet())
             {
-                if (FieldName == null)
+                if (FieldNameSymbol == default)
                     throw new IonException("Field name is not set");
 
-                writer.SetFieldName(FieldName);
+                writer.SetFieldNameSymbol(FieldNameSymbol);
             }
 
             var annotations = GetTypeAnnotations();
@@ -284,14 +296,14 @@ namespace IonDotnet.Tree
         /// </summary>
         internal abstract void WriteBodyTo(IPrivateWriter writer);
 
-        /// <summary>
-        /// Create a new instance of this Ion value with the same value but does not share the container context.
-        /// </summary>
-        /// <returns>A clone of this Ion value instance.</returns>
-        public IonValue Clone()
-        {
-            throw new NotImplementedException();
-        }
+//        /// <summary>
+//        /// Create a new instance of this Ion value with the same value but does not share the container context.
+//        /// </summary>
+//        /// <returns>A clone of this Ion value instance.</returns>
+//        public IonValue Clone()
+//        {
+//            throw new NotImplementedException();
+//        }
 
         public bool IsReadOnly => LockedFlagOn();
 

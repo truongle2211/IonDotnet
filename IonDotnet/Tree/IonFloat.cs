@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using IonDotnet.Internals;
 
 namespace IonDotnet.Tree
 {
+    /// <inheritdoc />
     /// <summary>
     /// Ion value representing a floating point number.
     /// </summary>
@@ -23,9 +25,15 @@ namespace IonDotnet.Tree
         /// </summary>
         public static IonFloat NewNull() => new IonFloat(true);
 
-        public override bool Equals(IonValue other)
+        public override bool IsEquivalentTo(IonValue other)
         {
-            throw new System.NotImplementedException();
+            if (!(other is IonFloat oFloat))
+                return false;
+
+            if (NullFlagOn())
+                return oFloat.IsNull;
+
+            return !oFloat.IsNull && EqualityComparer<double>.Default.Equals(oFloat.Value, Value);
         }
 
         internal override void WriteBodyTo(IPrivateWriter writer)

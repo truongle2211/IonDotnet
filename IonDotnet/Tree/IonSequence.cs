@@ -5,9 +5,13 @@ using IonDotnet.Internals;
 
 namespace IonDotnet.Tree
 {
+    /// <inheritdoc cref="IonContainer" />
+    /// <summary>
+    /// A container that is a sequence of values.
+    /// </summary>
     public abstract class IonSequence : IonContainer, IList<IonValue>
     {
-        protected List<IonValue> _children;
+        private List<IonValue> _children;
 
         protected IonSequence(bool isNull) : base(isNull)
         {
@@ -55,10 +59,10 @@ namespace IonDotnet.Tree
         {
             ThrowIfLocked();
             ThrowIfNull();
-            if (item == null)
+            if (item is null)
                 throw new ArgumentNullException(nameof(item));
             if (item.Container != null)
-                throw new ContainedValueException();
+                throw new ContainedValueException(item);
 
             _children.Add(item);
             item.Container = this;
@@ -73,6 +77,7 @@ namespace IonDotnet.Tree
         public override bool Remove(IonValue item)
         {
             ThrowIfLocked();
+            ThrowIfNull();
             if (NullFlagOn() || item?.Container != this)
                 return false;
 
@@ -89,7 +94,7 @@ namespace IonDotnet.Tree
             if (item == null)
                 throw new ArgumentNullException(nameof(item));
             if (item.Container != null)
-                throw new ContainedValueException();
+                throw new ContainedValueException(item);
 
             //this will check range
             _children.Insert(index, item);
@@ -104,6 +109,26 @@ namespace IonDotnet.Tree
 
             //this will check for lock
             Remove(_children[index]);
+        }
+
+        public override bool IsEquivalentTo(IonValue other)
+        {
+            if (other.Type != Type)
+                return false;
+
+            var otherSeq = (IonSequence) other;
+            if (NullFlagOn())
+                return otherSeq.IsNull;
+            if (otherSeq.IsNull || otherSeq.Count != Count)
+                return false;
+
+            for (int i = 0, l = Count; i < l; i++)
+            {
+                if (!_children[i].IsEquivalentTo(otherSeq._children[i]))
+                    return false;
+            }
+
+            return true;
         }
 
         /// <inheritdoc />

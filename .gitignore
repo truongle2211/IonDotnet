@@ -8,3 +8,4 @@ FundaMl/Properties/PublishProfiles/
 **/publish/*
 BenchmarkDotNet.Artifacts/
 .DS_Store
+IonDotnet.CLI.1.0.0.nupkg

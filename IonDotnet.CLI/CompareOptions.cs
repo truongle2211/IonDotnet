@@ -13,7 +13,7 @@ namespace IonDotnet.CLI
     {
         public static int Execute(CompareOptions opts)
         {
-            Console.WriteLine($"this is the thing that passes in {opts.Verbose}");
+            Console.WriteLine($"this is the thing that passes in");
             return 0;
         }
     }

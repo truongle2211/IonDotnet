@@ -1,5 +1,7 @@
 using System;
 using CommandLine;
+using IonDotnet.Systems;
+using IonDotnet.Tree;
 
 namespace IonDotnet.CLI
 {
@@ -8,14 +10,22 @@ namespace IonDotnet.CLI
     public class ProcessOptions : BaseOptions
     {
     }
-    
+
     public class ExecuteProcess
     {
         public static int Execute(ProcessOptions opts)
         {
-            Console.WriteLine($"this is the thing that passes in {opts.Verbose}");
+            if (opts.Input is null)
+            {
+                Console.WriteLine("Missing input file");
+                return 1;
+            }
+            
+//            Console.WriteLine(opts.Input);
+
+            IonDatagram Datagram = IonLoader.Default.Load(opts.Input);
+
             return 0;
         }
-
     }
 }
